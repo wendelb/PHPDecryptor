@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Web;
-using System.Web.UI;
-using System.Web.UI.WebControls;
 using System.Security.Cryptography;
 using System.Globalization;
 using System.IO;
@@ -103,13 +98,6 @@ namespace PHPDecryptor
         /// <returns>Plaintext</returns>
         private static String DecryptWithIV(byte[] cipherText, byte[] key)
         {
-            /*
-            // Extract the IV
-            String IVString = cipherText.Substring(0, IVSize);
-            String cipherData = cipherText.Substring(IVSize);
-            byte[] iv = StringToByteArray(IVString);
-            */
-
             byte[] iv = new byte[IVSize];
             Array.Copy(cipherText, iv, IVSize);
 
