@@ -7,6 +7,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Security.Cryptography;
 using System.Globalization;
+using System.IO;
 
 namespace PHPDecryptor
 {
@@ -70,6 +71,52 @@ namespace PHPDecryptor
             return HashEncode(hash);
         }
 
+        // Decrypt a string into a string using a key and an IV
+        private static string Decrypt(byte[] cipherData, byte[] key, byte[] iv)
+        {
+            // Based on: https://stackoverflow.com/a/20298260
+            // There should be an Exception Handling
+
+            // To get AES256 you need to explicitly set KeySize AND BlockSize
+            // PHP's mcrypt is using Zero-Bytes for Padding. The default Padding for C# is PKCS7 (which you either have to implement in PHP or use PHP's Zero-Padding)
+            using (var rijndaelManaged = new RijndaelManaged { KeySize = 256, BlockSize = 256, Key = key, IV = iv, Mode = CipherMode.CBC, Padding = PaddingMode.Zeros })
+            using (var memoryStream = new MemoryStream(cipherData))
+            using (var cryptoStream = new CryptoStream(memoryStream, rijndaelManaged.CreateDecryptor(key, iv), CryptoStreamMode.Read))
+            {
+                return new StreamReader(cryptoStream).ReadToEnd();
+            }
+        }
+
+
+        /// <summary>
+        /// Size of the used Initialisation Vector
+        /// </summary>
+        const int IVSize = 32;
+
+        /// <summary>
+        /// Decrypt a String with concatednated IV
+        /// </summary>
+        /// <param name="cipherText">IV || cipherText</param>
+        /// <param name="key">Decryption Key</param>
+        /// <returns>Plaintext</returns>
+        private static String DecryptWithIV(byte[] cipherText, byte[] key)
+        {
+            /*
+            // Extract the IV
+            String IVString = cipherText.Substring(0, IVSize);
+            String cipherData = cipherText.Substring(IVSize);
+            byte[] iv = StringToByteArray(IVString);
+            */
+
+            byte[] iv = new byte[IVSize];
+            Array.Copy(cipherText, iv, IVSize);
+
+            byte[] cipherData = new byte[cipherText.Length - IVSize];
+            Array.Copy(cipherText, IVSize, cipherData, 0, cipherData.Length);
+
+            return Decrypt(cipherData, key, iv);
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             // Fetch the data from the GET-Parameters
@@ -97,7 +144,9 @@ namespace PHPDecryptor
             }
 
             // Now move on to decrypt the data
-
+            // Don't convert from Base64 -> String -> byte[]
+            // Do it in one step: Base64 -> byte[]
+            dataPanel.Text = DecryptWithIV(Convert.FromBase64String(data), HexDecode(key));
 
         }
     }
