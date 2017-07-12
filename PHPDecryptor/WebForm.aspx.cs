@@ -8,6 +8,8 @@ using System.Web.UI.WebControls;
 using System.Security.Cryptography;
 using System.Globalization;
 using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace PHPDecryptor
 {
@@ -146,7 +148,26 @@ namespace PHPDecryptor
             // Now move on to decrypt the data
             // Don't convert from Base64 -> String -> byte[]
             // Do it in one step: Base64 -> byte[]
-            dataPanel.Text = DecryptWithIV(Convert.FromBase64String(data), HexDecode(key));
+            String DecryptedData = DecryptWithIV(Convert.FromBase64String(data), HexDecode(key));
+
+            // Now that the data is decrypted, convert it back to an object
+            dynamic receivedData = JsonConvert.DeserializeObject(DecryptedData);
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append("<pre>");
+
+            // Inspect the contents
+            foreach( JProperty property in receivedData)
+            {
+                sb.Append(property.Name);
+                sb.Append(" -&gt; ");
+                sb.Append(property.Value);
+                sb.Append("\n");
+            }
+
+            sb.Append("</pre>");
+
+            dataPanel.Text = sb.ToString();
 
         }
     }
